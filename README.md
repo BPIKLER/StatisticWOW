@@ -288,38 +288,94 @@ print(result['recommendation_this_week'])
 
 ## Crest accountability
 
-O simulador agora tambem considera crests para transformar item Myth looted em item Myth 100:
+O simulador agora tambem considera crests para transformar item Myth lootado (1/6) em item Myth totalmente maxxado (6/6):
 
-- Cada +12 timed gera 20 crests.
-- Cada item Myth precisa de 100 crests para ir de 0 para 100.
-- Pela tabela atual de tempo, `s=1` equivale a 1 dungeon timed, `s=2` a 5 dungeons timed, e `s=3` a 10 dungeons timed.
-- Portanto `s=2` gera exatamente 100 crests na semana, o suficiente para upgrade de 1 item Myth.
+### Track de upgrade — Myth (e so Myth conta)
 
-O output continua mostrando a expectativa de itens lootados, mas adiciona `E[upg 100]` e uma estrategia `crest-aware`, que otimiza a expectativa de itens efetivamente upgradeados para 100.
+Itens em WoW podem cair em diferentes tracks de progressao:
+
+- **Adventurer**, **Veteran**, **Champion**, **Hero** — **NAO contam** para esse simulador
+- **Myth** — unica track relevante; e a que aparece com o rotulo `Upgrade Level: Myth X/6`
+
+Quando voce informa o `k` de um personagem, conte apenas itens cujo tooltip diz `Myth X/6`. Hero, Champion, etc. ficam de fora.
+
+### Mecanica de crests para itens Myth
+
+- Um item Myth dropa em **1/6** com **item level 272** (na temporada atual)
+- Cada upgrade dentro da track Myth (1/6 → 2/6 → ... → 6/6) custa **20 crests**
+- Sao 5 upgrades para sair de 1/6 ate o cap **6/6**, totalizando **100 crests** por item totalmente maxxado
+- 6/6 e o teto de upgrade do jogo (item mais upgradeavel)
+
+### Geracao de crests por dungeon
+
+- Cada **+12 timed** gera 20 crests
+- Pela tabela atual de tempo, `s=1` equivale a 1 dungeon timed, `s=2` a 5 dungeons timed, e `s=3` a 10 dungeons timed
+- Portanto `s=2` gera exatamente 100 crests na semana — suficiente para subir 1 item Myth de 1/6 ate 6/6
+
+O output continua mostrando a expectativa de itens lootados, mas adiciona `E[upg 6/6]` e uma estrategia `crest-aware`, que otimiza a expectativa de itens efetivamente upgradeados ate 6/6.
 
 Tambem existe uma estrategia `max loot + crests`, diferente da recomendacao adaptativa normal:
 
 - Primeiro maximiza os itens Myth esperados ate o fim da season.
-- Depois maximiza quantos desses itens conseguem ficar 100 com crests.
+- Depois maximiza quantos desses itens conseguem ficar 6/6 com crests.
 - Por ultimo minimiza o tempo/dungeons entre estrategias equivalentes.
 
 Essa estrategia responde quantas +12 timed voce precisa jogar para perseguir o maximo de loot esperado e ainda ter crests para os upgrades.
 
-Voce pode informar itens ja maxxed e crests livres por personagem:
+Voce pode informar itens ja maxxed (6/6) e crests livres por personagem:
 
 ```powershell
 python "Simulador estatistico.py" --weeks 15 --characters "paladin:8,warrior:6" --maxxed "paladin:4,warrior:2" --crests "paladin:40,warrior:0"
 ```
 
-Nesse exemplo, o paladin tem 8 itens Myth lootados, 4 deles ja maxxed, e 40 crests livres. O warrior tem 6 itens Myth lootados, 2 ja maxxed, e 0 crests livres.
+Nesse exemplo, o paladin tem 8 itens Myth lootados (track Myth, ignorando Hero/Champion/etc.), 4 deles ja em 6/6, e 40 crests livres. O warrior tem 6 itens Myth lootados, 2 ja em 6/6, e 0 crests livres.
 
-No modo interativo, informe cada personagem como `nome k maxxed`, por exemplo `paladin 8 4`.
+No modo interativo, informe cada personagem como `nome k maxxed`, por exemplo `paladin 8 4` — onde `k` e a contagem de itens Myth (track Myth, qualquer X/6) e `maxxed` e quantos desses ja estao em 6/6.
+
+## Modo integrado: scraper alimentando o simulador
+
+`simulador_integrado.py` junta tudo: pede regiao/servidor/nome de cada personagem, chama o `wow_character_scraper.py` para baixar o gear do armory, conta os itens Myth equipados (ilvl >= `MYTH_BASE_ILVL`, default 272) e usa esse numero como `k` automaticamente — sem voce ter que contar item por item.
+
+```powershell
+python simulador_integrado.py
+```
+
+Para cada personagem o orquestrador:
+
+1. Chama `fetch_character_data(region, realm, name)` do scraper
+2. Mostra o item level medio + lista de pecas equipadas
+3. Conta itens com `item_level >= 272` (o threshold e configuravel; pode sobrescrever o `k` no prompt se quiser)
+4. Pergunta `maxxed` (quantos desses ja em 6/6) e crests livres
+
+Depois de coletar todos os personagens, pede a data do fim da season (ou semanas) e chama `Simulador estatistico.py` via subprocess com os argumentos ja montados (`--characters`, `--maxxed`, `--crests`, `--season-end`/`--weeks`).
+
+Se voce escolher saida JSON, alem do output do simulador o orquestrador imprime tambem o snapshot bruto do scraper (gear completo, M+ rating, melhores corridas) para cada personagem.
+
+### Idioma do relatorio: pt-br / en-us
+
+Util para guildmates que falam ingles. Os tres scripts suportam `--lang`:
+
+```powershell
+python simulador_integrado.py --lang en-us
+python simulador_integrado.py --lang pt-br      # default
+
+python wow_character_scraper.py --lang en-us
+python "Simulador estatistico.py" --lang en-us --weeks 12 --characters "paladin:3"
+```
+
+Se voce nao passar `--lang` no orquestrador, ele pergunta no inicio. O orquestrador propaga a escolha para o scraper (via API) e para o simulador (via `--lang` no subprocess), entao toda a saida sai no mesmo idioma.
+
+**Importante:** o idioma do relatorio e independente da regiao do servidor. Um personagem em `us/stormrage` pode ser visualizado em pt-br ou en-us — a URL do scraper nao muda. Os parametros `region` (us, eu, kr, tw) e `realm` continuam sendo a regiao geografica do servidor de WoW, nao um idioma.
+
+A saida `--json` (estruturada para n8n/automacao) ignora `--lang` por design: chaves e valores ficam estaveis para parsing.
 
 ## Anexos
 
 - `Simulador estatistico.py` — código fonte com comentários linha a linha
+- `wow_character_scraper.py` — scraper do armory (gear + M+ rating + best runs) via Raider.IO
+- `simulador_integrado.py` — orquestrador que liga o scraper ao simulador
 - `azure_function.py` — wrapper HTTP para Azure Functions (integração n8n)
-- `requirements.txt` — dependências (numpy, azure-functions)
+- `requirements.txt` — dependências (numpy, azure-functions, requests)
 - `policies.json` — política ótima exportada (gerada com `--json`)
 
 ## Setup com virtual environment

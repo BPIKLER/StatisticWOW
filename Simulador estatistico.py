@@ -72,6 +72,198 @@ CRESTS_BY_S = {
 
 
 # ============================================================================
+# i18n - textos da interface e do relatorio em pt-br (default) e en-us
+# Default fica em pt-br para preservar 100% do comportamento original quando
+# --lang nao eh passado.
+# ============================================================================
+SUPPORTED_LANGS = ('pt-br', 'en-us')
+DEFAULT_LANG = 'pt-br'
+
+_T = {
+    'pt-br': {
+        # interactive_inputs()
+        'interactive_title': 'SIMULADOR GREAT VAULT - MODO INTERATIVO',
+        'today': 'Hoje',
+        'next_reset': 'Proximo reset (terca)',
+        'season_question': 'Quanto tempo falta para o fim da season?',
+        'season_opt1': '[1] Informar a DATA do fim (DD/MM/YYYY)',
+        'season_opt2': '[2] Informar o NUMERO de semanas restantes',
+        'option_label': 'Opcao',
+        'ask_season_end_date': 'Data do fim da season (DD/MM/YYYY)',
+        'date_must_be_after': '! Data deve ser >= {date}. Tente de novo.',
+        'weeks_until_end': '-> {weeks} semanas (resets) ate o fim da season',
+        'ask_weeks': 'Quantas semanas restantes',
+        'must_be_ge_1': '! Precisa ser >= 1.',
+        'estimated_end': '-> Fim estimado: {date} (semana {weeks})',
+        'invalid_number': '! Numero invalido.',
+        'ask_total': 'Total de itens unicos no pool',
+        'add_chars': 'Adicione seus personagens.',
+        'char_format': "Formato: 'nome k maxxed' (ex: 'paladin 8 4'). ENTER vazio para encerrar.",
+        'char_third_optional': 'O terceiro numero eh opcional; se omitido, maxxed=0.',
+        'ask_char': 'char #{n}',
+        'need_at_least_1_char': '! Precisa pelo menos 1 personagem.',
+        'bad_char_format': "! Formato: 'nome k maxxed' (ex: 'paladin 8 4')",
+        'k_out_of_range': '! k deve estar entre 0 e {total}.',
+        'maxxed_out_of_range': '! maxxed deve estar entre 0 e k ({k}).',
+        'char_added': 'OK: {name} com k={k}, maxxed={maxxed}',
+        'invalid_k': '! Numero invalido para k.',
+        # print_character_report()
+        'character': 'PERSONAGEM',
+        'k_initial': 'k inicial: {k} de {total} itens ({pct:.0f}% ja coletado)',
+        'items_maxxed': 'Itens ja maxxed (6/6)',
+        'free_crests_initial': 'Crests livres iniciais',
+        'effective_crests_initial': 'Crests equivalentes iniciais',
+        'weeks_remaining': 'Semanas restantes',
+        'fixed_strategies': 'Estrategias fixas (Monte Carlo vs Markov teorico)',
+        'col_mc_items': 'MC E[itens]',
+        'col_markov': 'Markov',
+        'col_e_upg': 'E[upg 6/6]',
+        'col_crests': 'Crests',
+        'col_p_upg_all': 'P(upg all)',
+        'adaptive_strategies': 'Estrategias adaptativas (DP otimo)',
+        'col_lambda': 'lambda',
+        'col_e_items': 'E[itens]',
+        'col_time': 'Tempo',
+        'col_p_complete': 'P(comp)',
+        'col_action_now': 'Acao agora',
+        'crest_aware_strategy': 'Estrategia crest-aware (otimiza item Myth 6/6)',
+        'e_looted': 'E[itens lootados]',
+        'e_upgraded': 'E[itens upgrade 6/6]',
+        'time_p_all': 'Tempo: {min:.0f} min  |  P(todos 6/6): {pct:.1%}',
+        'max_loot_strategy': 'Estrategia max loot + crests',
+        'expected_dungeons': 'Dungeons esperadas: {n:.1f}  |  Tempo: {h:.1f}h',
+        'action_now_line': 'Acao agora: s={s}  |  +12 timed: {d}  |  Crests: {c}',
+        'recommendation_header': '>>> RECOMENDACAO PARA ESSA SEMANA <<<',
+        'play_line': 'Jogar: s = {s}  |  Tempo: {min} min',
+        'timed_crests_line': '+12 timed: {d}  |  Crests: {c}',
+        'p_new_item': 'P(item novo essa semana): {pct:.1%}',
+        # main() report
+        'json_requires_cli': 'ERRO: --json requer modo CLI nao-interativo. '
+                              'Passe --season-end (ou --weeks) e --characters.',
+        'report_title': 'RELATORIO GREAT VAULT',
+        'season_end_label': 'Fim da season',
+        'header_summary': 'Semanas restantes: {w}  |  Total itens: {t}  |  Sims: {s:,}',
+        'crests_rule': 'Crests: {per_run} por +12 timed  |  '
+                        '{per_item} para upgrade 1/6 -> 6/6',
+        'reset_agenda': 'AGENDA DE RESETS ({n} tercas)',
+        'last_marker': ' <- ULTIMA',
+        'aggregated_summary': 'RESUMO AGREGADO ({n} personagens)',
+        'strat_all_s2': "Estrategia 'todo s=2' (simples):",
+        'strat_adaptive': 'Estrategia adaptativa (DP otimo):',
+        'strat_crest_aware': 'Estrategia crest-aware (DP otimo para Myth 6/6):',
+        'strat_max_loot': 'Estrategia max loot + crests:',
+        'agg_time': 'Tempo: {min:.0f} min ({h:.1f}h)',
+        'agg_items': 'Itens: {n:.1f}/{m} ({pct:.0f}%)',
+        'agg_items_upgraded': 'Itens upgrade 6/6: {n:.1f}/{m} ({pct:.0f}%)',
+        'agg_dungeons': 'Dungeons: {n:.1f}',
+        'agg_looted': 'Itens lootados: {n:.1f}/{m} ({pct:.0f}%)',
+        'actions_for_week': 'ACOES PARA A SEMANA QUE COMECA EM {date}',
+        'action_line': '{name:<15} (k={k:>2}): jogar s={s}  '
+                        '({min:>3} min, {c:>3} crests, '
+                        '{pct:.0%} de chance de item novo)',
+        'total_label': '>>> TOTAL',
+        'total_week_line': '{min} min essa semana ({h:.1f}h)',
+        'actions_max_loot': 'ACOES MAX LOOT + CRESTS PARA ESSA SEMANA:',
+        'action_max_line': '{name:<15} (k={k:>2}): jogar s={s}  '
+                            '({d:>2} dungeons, {min:>3} min, {c:>3} crests)',
+        'total_max_line': '{d} dungeons, {min} min essa semana ({h:.1f}h)',
+    },
+    'en-us': {
+        'interactive_title': 'GREAT VAULT SIMULATOR - INTERACTIVE MODE',
+        'today': 'Today',
+        'next_reset': 'Next reset (Tuesday)',
+        'season_question': 'How much time is left in the season?',
+        'season_opt1': '[1] Provide season END DATE (DD/MM/YYYY)',
+        'season_opt2': '[2] Provide NUMBER of weeks remaining',
+        'option_label': 'Choice',
+        'ask_season_end_date': 'Season end date (DD/MM/YYYY)',
+        'date_must_be_after': '! Date must be >= {date}. Try again.',
+        'weeks_until_end': '-> {weeks} weeks (resets) until end of season',
+        'ask_weeks': 'How many weeks remaining',
+        'must_be_ge_1': '! Must be >= 1.',
+        'estimated_end': '-> Estimated end: {date} (week {weeks})',
+        'invalid_number': '! Invalid number.',
+        'ask_total': 'Total unique items in the pool',
+        'add_chars': 'Add your characters.',
+        'char_format': "Format: 'name k maxxed' (e.g. 'paladin 8 4'). Empty ENTER to finish.",
+        'char_third_optional': 'Third number is optional; if omitted, maxxed=0.',
+        'ask_char': 'char #{n}',
+        'need_at_least_1_char': '! Need at least 1 character.',
+        'bad_char_format': "! Format: 'name k maxxed' (e.g. 'paladin 8 4')",
+        'k_out_of_range': '! k must be between 0 and {total}.',
+        'maxxed_out_of_range': '! maxxed must be between 0 and k ({k}).',
+        'char_added': 'OK: {name} with k={k}, maxxed={maxxed}',
+        'invalid_k': '! Invalid number for k.',
+        'character': 'CHARACTER',
+        'k_initial': 'starting k: {k} of {total} items ({pct:.0f}% already collected)',
+        'items_maxxed': 'Items already maxxed (6/6)',
+        'free_crests_initial': 'Initial free crests',
+        'effective_crests_initial': 'Initial equivalent crests',
+        'weeks_remaining': 'Weeks remaining',
+        'fixed_strategies': 'Fixed strategies (Monte Carlo vs theoretical Markov)',
+        'col_mc_items': 'MC E[items]',
+        'col_markov': 'Markov',
+        'col_e_upg': 'E[upg 6/6]',
+        'col_crests': 'Crests',
+        'col_p_upg_all': 'P(upg all)',
+        'adaptive_strategies': 'Adaptive strategies (optimal DP)',
+        'col_lambda': 'lambda',
+        'col_e_items': 'E[items]',
+        'col_time': 'Time',
+        'col_p_complete': 'P(comp)',
+        'col_action_now': 'Action now',
+        'crest_aware_strategy': 'Crest-aware strategy (optimizes Myth 6/6 items)',
+        'e_looted': 'E[looted items]',
+        'e_upgraded': 'E[items upgraded to 6/6]',
+        'time_p_all': 'Time: {min:.0f} min  |  P(all 6/6): {pct:.1%}',
+        'max_loot_strategy': 'Max loot + crests strategy',
+        'expected_dungeons': 'Expected dungeons: {n:.1f}  |  Time: {h:.1f}h',
+        'action_now_line': 'Action now: s={s}  |  +12 timed: {d}  |  Crests: {c}',
+        'recommendation_header': '>>> RECOMMENDATION FOR THIS WEEK <<<',
+        'play_line': 'Play: s = {s}  |  Time: {min} min',
+        'timed_crests_line': '+12 timed: {d}  |  Crests: {c}',
+        'p_new_item': 'P(new item this week): {pct:.1%}',
+        'json_requires_cli': 'ERROR: --json requires non-interactive CLI mode. '
+                              'Pass --season-end (or --weeks) and --characters.',
+        'report_title': 'GREAT VAULT REPORT',
+        'season_end_label': 'Season end',
+        'header_summary': 'Weeks remaining: {w}  |  Total items: {t}  |  Sims: {s:,}',
+        'crests_rule': 'Crests: {per_run} per +12 timed  |  '
+                        '{per_item} for upgrade 1/6 -> 6/6',
+        'reset_agenda': 'RESET SCHEDULE ({n} Tuesdays)',
+        'last_marker': ' <- LAST',
+        'aggregated_summary': 'AGGREGATED SUMMARY ({n} characters)',
+        'strat_all_s2': "'All s=2' strategy (simple):",
+        'strat_adaptive': 'Adaptive strategy (optimal DP):',
+        'strat_crest_aware': 'Crest-aware strategy (optimal DP for Myth 6/6):',
+        'strat_max_loot': 'Max loot + crests strategy:',
+        'agg_time': 'Time: {min:.0f} min ({h:.1f}h)',
+        'agg_items': 'Items: {n:.1f}/{m} ({pct:.0f}%)',
+        'agg_items_upgraded': 'Items upgraded to 6/6: {n:.1f}/{m} ({pct:.0f}%)',
+        'agg_dungeons': 'Dungeons: {n:.1f}',
+        'agg_looted': 'Looted items: {n:.1f}/{m} ({pct:.0f}%)',
+        'actions_for_week': 'ACTIONS FOR THE WEEK STARTING {date}',
+        'action_line': '{name:<15} (k={k:>2}): play s={s}  '
+                        '({min:>3} min, {c:>3} crests, '
+                        '{pct:.0%} chance of new item)',
+        'total_label': '>>> TOTAL',
+        'total_week_line': '{min} min this week ({h:.1f}h)',
+        'actions_max_loot': 'MAX LOOT + CRESTS ACTIONS FOR THIS WEEK:',
+        'action_max_line': '{name:<15} (k={k:>2}): play s={s}  '
+                            '({d:>2} dungeons, {min:>3} min, {c:>3} crests)',
+        'total_max_line': '{d} dungeons, {min} min this week ({h:.1f}h)',
+    },
+}
+
+
+def t(lang, key, **kwargs):
+    """Retorna texto localizado para (lang, key), formatado com kwargs."""
+    table = _T.get(lang) or _T[DEFAULT_LANG]
+    template = table.get(key) or _T[DEFAULT_LANG].get(key) or key
+    return template.format(**kwargs) if kwargs else template
+
+
+# ============================================================================
 # Funcao: calcula a proxima terca-feira a partir de uma data
 # (Se hoje for terca, retorna hoje - assume que o reset ja aconteceu)
 # ============================================================================
@@ -190,97 +382,97 @@ def effective_crests(initial_crests: int, initial_maxxed_items: int) -> int:
 # ============================================================================
 # Modo INTERATIVO: pergunta os inputs ao usuario passo a passo
 # ============================================================================
-def interactive_inputs() -> Dict:
+def interactive_inputs(lang: str = DEFAULT_LANG) -> Dict:
     """Conduz o usuario pelos inputs e retorna config completa."""
     print("=" * 70)
-    print("  SIMULADOR GREAT VAULT - MODO INTERATIVO")
+    print(f"  {t(lang, 'interactive_title')}")
     print("=" * 70)
 
     today = date.today()
     next_reset = next_tuesday(today)
-    print(f"\n  Hoje: {today.strftime('%d/%m/%Y (%A)')}")
-    print(f"  Proximo reset (terca): {next_reset.strftime('%d/%m/%Y')}")
+    print(f"\n  {t(lang, 'today')}: {today.strftime('%d/%m/%Y (%A)')}")
+    print(f"  {t(lang, 'next_reset')}: {next_reset.strftime('%d/%m/%Y')}")
 
     # ------ semanas restantes (via data ou direto) ----------------------------
-    print(f"\n  Quanto tempo falta para o fim da season?")
-    print(f"    [1] Informar a DATA do fim (DD/MM/YYYY)")
-    print(f"    [2] Informar o NUMERO de semanas restantes")
-    choice = input(f"  Opcao [1]: ").strip() or "1"
+    print(f"\n  {t(lang, 'season_question')}")
+    print(f"    {t(lang, 'season_opt1')}")
+    print(f"    {t(lang, 'season_opt2')}")
+    choice = input(f"  {t(lang, 'option_label')} [1]: ").strip() or "1"
 
     if choice == "1":
         while True:
-            s = input(f"  Data do fim da season (DD/MM/YYYY): ").strip()
+            s = input(f"  {t(lang, 'ask_season_end_date')}: ").strip()
             try:
                 season_end = parse_date_flexible(s)
                 if season_end < next_reset:
-                    print(f"  ! Data deve ser >= {next_reset.strftime('%d/%m/%Y')}. Tente de novo.")
+                    print(f"  {t(lang, 'date_must_be_after', date=next_reset.strftime('%d/%m/%Y'))}")
                     continue
                 weeks = weeks_remaining(next_reset, season_end)
-                print(f"  -> {weeks} semanas (resets) ate o fim da season")
+                print(f"  {t(lang, 'weeks_until_end', weeks=weeks)}")
                 break
             except ValueError as e:
                 print(f"  ! {e}")
     else:
         while True:
             try:
-                weeks = int(input(f"  Quantas semanas restantes? ").strip())
+                weeks = int(input(f"  {t(lang, 'ask_weeks')}? ").strip())
                 if weeks < 1:
-                    print(f"  ! Precisa ser >= 1.")
+                    print(f"  {t(lang, 'must_be_ge_1')}")
                     continue
                 # estima data do fim a partir do numero de semanas
                 season_end = next_reset + timedelta(days=7 * (weeks - 1))
-                print(f"  -> Fim estimado: {season_end.strftime('%d/%m/%Y')} (semana {weeks})")
+                print(f"  {t(lang, 'estimated_end', date=season_end.strftime('%d/%m/%Y'), weeks=weeks)}")
                 break
             except ValueError:
-                print(f"  ! Numero invalido.")
+                print(f"  {t(lang, 'invalid_number')}")
 
     # ------ total de itens ----------------------------------------------------
     while True:
-        s = input(f"\n  Total de itens unicos no pool [{TOTAL_ITEMS_DEFAULT}]: ").strip()
+        s = input(f"\n  {t(lang, 'ask_total')} [{TOTAL_ITEMS_DEFAULT}]: ").strip()
         if not s:
             total = TOTAL_ITEMS_DEFAULT
             break
         try:
             total = int(s)
             if total < 1:
-                print(f"  ! Precisa ser >= 1.")
+                print(f"  {t(lang, 'must_be_ge_1')}")
                 continue
             break
         except ValueError:
-            print(f"  ! Numero invalido.")
+            print(f"  {t(lang, 'invalid_number')}")
 
     # ------ personagens (loop ate vazio) --------------------------------------
-    print(f"\n  Adicione seus personagens.")
-    print(f"  Formato: 'nome k maxxed' (ex: 'paladin 8 4'). ENTER vazio para encerrar.")
-    print(f"  O terceiro numero eh opcional; se omitido, maxxed=0.")
+    print(f"\n  {t(lang, 'add_chars')}")
+    print(f"  {t(lang, 'char_format')}")
+    print(f"  {t(lang, 'char_third_optional')}")
     characters = []
     character_maxxed = {}
     while True:
-        line = input(f"  char #{len(characters) + 1}: ").strip()
+        line = input(f"  {t(lang, 'ask_char', n=len(characters) + 1)}: ").strip()
         if not line:
             if characters:
                 break
-            print(f"  ! Precisa pelo menos 1 personagem.")
+            print(f"  {t(lang, 'need_at_least_1_char')}")
             continue
         parts = line.replace(':', ' ').split()
         if len(parts) < 2:
-            print(f"  ! Formato: 'nome k maxxed' (ex: 'paladin 8 4')")
+            print(f"  {t(lang, 'bad_char_format')}")
             continue
         try:
             name = parts[0]
             k = int(parts[1])
             maxxed = int(parts[2]) if len(parts) >= 3 else 0
             if not (0 <= k <= total):
-                print(f"  ! k deve estar entre 0 e {total}.")
+                print(f"  {t(lang, 'k_out_of_range', total=total)}")
                 continue
             if not (0 <= maxxed <= k):
-                print(f"  ! maxxed deve estar entre 0 e k ({k}).")
+                print(f"  {t(lang, 'maxxed_out_of_range', k=k)}")
                 continue
             characters.append((name, k))
             character_maxxed[name] = maxxed
-            print(f"    OK: {name} com k={k}, maxxed={maxxed}")
+            print(f"    {t(lang, 'char_added', name=name, k=k, maxxed=maxxed)}")
         except ValueError:
-            print(f"  ! Numero invalido para k.")
+            print(f"  {t(lang, 'invalid_k')}")
 
     return {
         'today': today,
@@ -777,20 +969,19 @@ def analyze_character(name: str, k_inicial: int, weeks: int, total: int,
 # ============================================================================
 # Print formatado para UM personagem
 # ============================================================================
-def print_character_report(char: Dict, total: int):
+def print_character_report(char: Dict, total: int, lang: str = DEFAULT_LANG):
     print(f"\n{'=' * 70}")
-    print(f"  PERSONAGEM: {char['name'].upper()}")
-    print(f"  k inicial: {char['k_inicial']} de {total} itens "
-          f"({100 * char['k_inicial'] / total:.0f}% ja coletado)")
-    print(f"  Itens ja maxxed: {char.get('initial_maxxed_items', 0)}")
-    print(f"  Crests livres iniciais: {char.get('initial_crests', 0)}")
-    print(f"  Crests equivalentes iniciais: {char.get('effective_initial_crests', 0)}")
-    print(f"  Semanas restantes: {char['weeks_remaining']}")
+    print(f"  {t(lang, 'character')}: {char['name'].upper()}")
+    print(f"  {t(lang, 'k_initial', k=char['k_inicial'], total=total, pct=100 * char['k_inicial'] / total)}")
+    print(f"  {t(lang, 'items_maxxed')}: {char.get('initial_maxxed_items', 0)}")
+    print(f"  {t(lang, 'free_crests_initial')}: {char.get('initial_crests', 0)}")
+    print(f"  {t(lang, 'effective_crests_initial')}: {char.get('effective_initial_crests', 0)}")
+    print(f"  {t(lang, 'weeks_remaining')}: {char['weeks_remaining']}")
     print(f"{'=' * 70}")
 
-    print(f"\n  Estrategias fixas (Monte Carlo vs Markov teorico)")
-    print(f"  {'s':<4} {'MC E[itens]':>12} {'Markov':>10} "
-          f"{'E[upg 100]':>11} {'Crests':>8} {'P(upg all)':>11}")
+    print(f"\n  {t(lang, 'fixed_strategies')}")
+    print(f"  {'s':<4} {t(lang, 'col_mc_items'):>12} {t(lang, 'col_markov'):>10} "
+          f"{t(lang, 'col_e_upg'):>11} {t(lang, 'col_crests'):>8} {t(lang, 'col_p_upg_all'):>11}")
     print(f"  {'-' * 70}")
     for s_name, r in char['fixed'].items():
         print(f"  {s_name:<4} {r['mean_items_mc']:>12.2f} "
@@ -798,9 +989,9 @@ def print_character_report(char: Dict, total: int):
               f"{r['expected_upgraded_items']:>11.2f} "
               f"{r['final_crests']:>8.0f} {r['theoretical_p_all_upgraded']:>11.1%}")
 
-    print(f"\n  Estrategias adaptativas (DP otimo)")
-    print(f"  {'lambda':<14} {'E[itens]':>10} {'Tempo':>13} "
-          f"{'P(comp)':>10} {'Acao agora':>12}")
+    print(f"\n  {t(lang, 'adaptive_strategies')}")
+    print(f"  {t(lang, 'col_lambda'):<14} {t(lang, 'col_e_items'):>10} {t(lang, 'col_time'):>13} "
+          f"{t(lang, 'col_p_complete'):>10} {t(lang, 'col_action_now'):>12}")
     print(f"  {'-' * 60}")
     for lam_name, r in char['adaptive'].items():
         print(f"  {lam_name:<14} {r['expected_items']:>10.2f} "
@@ -808,27 +999,23 @@ def print_character_report(char: Dict, total: int):
               f"{'s=' + str(r['action_this_week']):>12}")
 
     crest = char['crest_aware']['lambda=0.0005']
-    print(f"\n  Estrategia crest-aware (otimiza item Myth 100)")
-    print(f"      E[itens lootados]: {crest['expected_looted_items']:.2f}")
-    print(f"      E[itens upgrade 100]: {crest['expected_upgraded_items']:.2f}")
-    print(f"      Tempo: {crest['expected_time_min']:.0f} min  |  "
-          f"P(todos 100): {crest['p_all_upgraded']:.1%}")
+    print(f"\n  {t(lang, 'crest_aware_strategy')}")
+    print(f"      {t(lang, 'e_looted')}: {crest['expected_looted_items']:.2f}")
+    print(f"      {t(lang, 'e_upgraded')}: {crest['expected_upgraded_items']:.2f}")
+    print(f"      {t(lang, 'time_p_all', min=crest['expected_time_min'], pct=crest['p_all_upgraded'])}")
 
     max_crest = char['max_loot_then_crests']
-    print(f"\n  Estrategia max loot + crests")
-    print(f"      E[itens lootados]: {max_crest['expected_looted_items']:.2f}")
-    print(f"      E[itens upgrade 100]: {max_crest['expected_upgraded_items']:.2f}")
-    print(f"      Dungeons esperadas: {max_crest['expected_dungeons']:.1f}  |  "
-          f"Tempo: {max_crest['expected_time_hours']:.1f}h")
-    print(f"      Acao agora: s={max_crest['action_this_week']}  |  "
-          f"+12 timed: {max_crest['dungeons_this_week']}  |  "
-          f"Crests: {max_crest['crests_this_week']}")
+    print(f"\n  {t(lang, 'max_loot_strategy')}")
+    print(f"      {t(lang, 'e_looted')}: {max_crest['expected_looted_items']:.2f}")
+    print(f"      {t(lang, 'e_upgraded')}: {max_crest['expected_upgraded_items']:.2f}")
+    print(f"      {t(lang, 'expected_dungeons', n=max_crest['expected_dungeons'], h=max_crest['expected_time_hours'])}")
+    print(f"      {t(lang, 'action_now_line', s=max_crest['action_this_week'], d=max_crest['dungeons_this_week'], c=max_crest['crests_this_week'])}")
 
     rec = char['recommendation_this_week']
-    print(f"\n  >>> RECOMENDACAO PARA ESSA SEMANA <<<")
-    print(f"      Jogar: s = {rec['play_s']}  |  Tempo: {rec['time_min']} min")
-    print(f"      +12 timed: {rec['timed_12_keys']}  |  Crests: {rec['crests']}")
-    print(f"      P(item novo essa semana): {rec['p_new_item']:.1%}")
+    print(f"\n  {t(lang, 'recommendation_header')}")
+    print(f"      {t(lang, 'play_line', s=rec['play_s'], min=rec['time_min'])}")
+    print(f"      {t(lang, 'timed_crests_line', d=rec['timed_12_keys'], c=rec['crests'])}")
+    print(f"      {t(lang, 'p_new_item', pct=rec['p_new_item'])}")
 
 
 # ============================================================================
@@ -874,7 +1061,10 @@ Exemplos:
                         help='saida JSON estruturada (para n8n/API)')
     parser.add_argument('--interactive', action='store_true',
                         help='forca modo interativo mesmo se houver args CLI')
+    parser.add_argument('--lang', choices=SUPPORTED_LANGS, default=DEFAULT_LANG,
+                        help=f'idioma do relatorio / report language (default: {DEFAULT_LANG})')
     args = parser.parse_args()
+    lang = args.lang
 
     # ------ decide modo: interativo ou CLI ------------------------------------
     cli_complete = args.characters and (args.season_end or args.weeks)
@@ -882,10 +1072,9 @@ Exemplos:
 
     if use_interactive:
         if args.json:
-            print("ERRO: --json requer modo CLI nao-interativo. "
-                  "Passe --season-end (ou --weeks) e --characters.", file=sys.stderr)
+            print(t(lang, 'json_requires_cli'), file=sys.stderr)
             sys.exit(1)
-        config = interactive_inputs()
+        config = interactive_inputs(lang)
         config['n_sims'] = args.sims
         config['seed'] = args.seed
     else:
@@ -947,87 +1136,65 @@ Exemplos:
 
     # ------ saida humana ------------------------------------------------------
     print(f"\n{'=' * 70}")
-    print(f"  RELATORIO GREAT VAULT")
-    print(f"  Hoje: {config['today'].strftime('%d/%m/%Y (%A)')}")
-    print(f"  Proximo reset: {config['next_reset'].strftime('%d/%m/%Y')}")
-    print(f"  Fim da season: {config['season_end'].strftime('%d/%m/%Y')}")
-    print(f"  Semanas restantes: {config['weeks']}  |  "
-          f"Total itens: {config['total']}  |  Sims: {config['n_sims']:,}")
-    print(f"  Crests: {CRESTS_PER_TIMED_12} por +12 timed  |  "
-          f"{CRESTS_TO_UPGRADE_ITEM} para upgrade 0 -> 100")
+    print(f"  {t(lang, 'report_title')}")
+    print(f"  {t(lang, 'today')}: {config['today'].strftime('%d/%m/%Y (%A)')}")
+    print(f"  {t(lang, 'next_reset')}: {config['next_reset'].strftime('%d/%m/%Y')}")
+    print(f"  {t(lang, 'season_end_label')}: {config['season_end'].strftime('%d/%m/%Y')}")
+    print(f"  {t(lang, 'header_summary', w=config['weeks'], t=config['total'], s=config['n_sims'])}")
+    print(f"  {t(lang, 'crests_rule', per_run=CRESTS_PER_TIMED_12, per_item=CRESTS_TO_UPGRADE_ITEM)}")
     print(f"{'=' * 70}")
 
     reset_dates = list_reset_dates(config['next_reset'], config['season_end'])
-    print(f"\n  AGENDA DE RESETS ({len(reset_dates)} tercas):")
+    print(f"\n  {t(lang, 'reset_agenda', n=len(reset_dates))}:")
     for i, d in enumerate(reset_dates, 1):
-        suffix = " <- ULTIMA" if i == len(reset_dates) else ""
+        suffix = t(lang, 'last_marker') if i == len(reset_dates) else ""
         if i % 5 == 0 or i == len(reset_dates) or i == 1:
             print(f"    {i:2}. {d.strftime('%d/%m/%Y')}{suffix}")
         elif i == 2:
             print(f"    ...")
 
     for char in char_results:
-        print_character_report(char, config['total'])
+        print_character_report(char, config['total'], lang)
 
     # ------ resumo agregado ---------------------------------------------------
     print(f"\n{'=' * 70}")
-    print(f"  RESUMO AGREGADO ({len(char_results)} personagens)")
+    print(f"  {t(lang, 'aggregated_summary', n=len(char_results))}")
     print(f"{'=' * 70}")
     summary = _aggregated_summary(char_results, config['total'])
     max_items = config['total'] * len(char_results)
 
-    print(f"\n  Estrategia 'todo s=2' (simples):")
-    print(f"    Tempo: {summary['s2_time_min']:.0f} min "
-          f"({summary['s2_time_min']/60:.1f}h)")
-    print(f"    Itens: {summary['s2_items']:.1f}/{max_items} "
-          f"({100*summary['s2_items']/max_items:.0f}%)")
+    print(f"\n  {t(lang, 'strat_all_s2')}")
+    print(f"    {t(lang, 'agg_time', min=summary['s2_time_min'], h=summary['s2_time_min']/60)}")
+    print(f"    {t(lang, 'agg_items', n=summary['s2_items'], m=max_items, pct=100*summary['s2_items']/max_items)}")
 
-    print(f"\n  Estrategia adaptativa (DP otimo):")
-    print(f"    Tempo: {summary['adaptive_time_min']:.0f} min "
-          f"({summary['adaptive_time_min']/60:.1f}h)")
-    print(f"    Itens: {summary['adaptive_items']:.1f}/{max_items} "
-          f"({100*summary['adaptive_items']/max_items:.0f}%)")
+    print(f"\n  {t(lang, 'strat_adaptive')}")
+    print(f"    {t(lang, 'agg_time', min=summary['adaptive_time_min'], h=summary['adaptive_time_min']/60)}")
+    print(f"    {t(lang, 'agg_items', n=summary['adaptive_items'], m=max_items, pct=100*summary['adaptive_items']/max_items)}")
 
-    print(f"\n  Estrategia crest-aware (DP otimo para Myth 100):")
-    print(f"    Tempo: {summary['crest_aware_time_min']:.0f} min "
-          f"({summary['crest_aware_time_min']/60:.1f}h)")
-    print(f"    Itens upgrade 100: {summary['crest_aware_upgraded_items']:.1f}/{max_items} "
-          f"({100*summary['crest_aware_upgraded_items']/max_items:.0f}%)")
+    print(f"\n  {t(lang, 'strat_crest_aware')}")
+    print(f"    {t(lang, 'agg_time', min=summary['crest_aware_time_min'], h=summary['crest_aware_time_min']/60)}")
+    print(f"    {t(lang, 'agg_items_upgraded', n=summary['crest_aware_upgraded_items'], m=max_items, pct=100*summary['crest_aware_upgraded_items']/max_items)}")
 
-    print(f"\n  Estrategia max loot + crests:")
-    print(f"    Dungeons: {summary['max_loot_then_crests_dungeons']:.1f}")
-    print(f"    Tempo: {summary['max_loot_then_crests_time_min']:.0f} min "
-          f"({summary['max_loot_then_crests_time_min']/60:.1f}h)")
-    print(f"    Itens lootados: {summary['max_loot_then_crests_looted_items']:.1f}/{max_items} "
-          f"({100*summary['max_loot_then_crests_looted_items']/max_items:.0f}%)")
-    print(f"    Itens upgrade 100: {summary['max_loot_then_crests_upgraded_items']:.1f}/{max_items} "
-          f"({100*summary['max_loot_then_crests_upgraded_items']/max_items:.0f}%)")
+    print(f"\n  {t(lang, 'strat_max_loot')}")
+    print(f"    {t(lang, 'agg_dungeons', n=summary['max_loot_then_crests_dungeons'])}")
+    print(f"    {t(lang, 'agg_time', min=summary['max_loot_then_crests_time_min'], h=summary['max_loot_then_crests_time_min']/60)}")
+    print(f"    {t(lang, 'agg_looted', n=summary['max_loot_then_crests_looted_items'], m=max_items, pct=100*summary['max_loot_then_crests_looted_items']/max_items)}")
+    print(f"    {t(lang, 'agg_items_upgraded', n=summary['max_loot_then_crests_upgraded_items'], m=max_items, pct=100*summary['max_loot_then_crests_upgraded_items']/max_items)}")
 
-    print(f"\n  ACOES PARA A SEMANA QUE COMECA EM "
-          f"{config['next_reset'].strftime('%d/%m/%Y')}:")
+    print(f"\n  {t(lang, 'actions_for_week', date=config['next_reset'].strftime('%d/%m/%Y'))}:")
     for char in char_results:
         rec = char['recommendation_this_week']
-        print(f"    {char['name']:<15} (k={char['k_inicial']:>2}): "
-              f"jogar s={rec['play_s']}  "
-              f"({rec['time_min']:>3} min, "
-              f"{rec['crests']:>3} crests, "
-              f"{rec['p_new_item']:.0%} de chance de item novo)")
+        print(f"    {t(lang, 'action_line', name=char['name'], k=char['k_inicial'], s=rec['play_s'], min=rec['time_min'], c=rec['crests'], pct=rec['p_new_item'])}")
     total_week = sum(c['recommendation_this_week']['time_min'] for c in char_results)
-    print(f"    {'>>> TOTAL':<15}: {total_week} min essa semana "
-          f"({total_week/60:.1f}h)")
+    print(f"    {t(lang, 'total_label'):<15}: {t(lang, 'total_week_line', min=total_week, h=total_week/60)}")
 
-    print(f"\n  ACOES MAX LOOT + CRESTS PARA ESSA SEMANA:")
+    print(f"\n  {t(lang, 'actions_max_loot')}")
     for char in char_results:
         rec = char['max_loot_then_crests']
-        print(f"    {char['name']:<15} (k={char['k_inicial']:>2}): "
-              f"jogar s={rec['action_this_week']}  "
-              f"({rec['dungeons_this_week']:>2} dungeons, "
-              f"{rec['time_this_week_min']:>3} min, "
-              f"{rec['crests_this_week']:>3} crests)")
+        print(f"    {t(lang, 'action_max_line', name=char['name'], k=char['k_inicial'], s=rec['action_this_week'], d=rec['dungeons_this_week'], min=rec['time_this_week_min'], c=rec['crests_this_week'])}")
     total_max_week = sum(c['max_loot_then_crests']['time_this_week_min'] for c in char_results)
     total_max_dungeons = sum(c['max_loot_then_crests']['dungeons_this_week'] for c in char_results)
-    print(f"    {'>>> TOTAL':<15}: {total_max_dungeons} dungeons, "
-          f"{total_max_week} min essa semana ({total_max_week/60:.1f}h)")
+    print(f"    {t(lang, 'total_label'):<15}: {t(lang, 'total_max_line', d=total_max_dungeons, min=total_max_week, h=total_max_week/60)}")
     print()
 
 
