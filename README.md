@@ -332,11 +332,32 @@ Nesse exemplo, o paladin tem 8 itens Myth lootados (track Myth, ignorando Hero/C
 
 No modo interativo, informe cada personagem como `nome k maxxed`, por exemplo `paladin 8 4` — onde `k` e a contagem de itens Myth (track Myth, qualquer X/6) e `maxxed` e quantos desses ja estao em 6/6.
 
+## Modo integrado: scraper alimentando o simulador
+
+`simulador_integrado.py` junta tudo: pede regiao/servidor/nome de cada personagem, chama o `wow_character_scraper.py` para baixar o gear do armory, conta os itens Myth equipados (ilvl >= `MYTH_BASE_ILVL`, default 272) e usa esse numero como `k` automaticamente — sem voce ter que contar item por item.
+
+```powershell
+python simulador_integrado.py
+```
+
+Para cada personagem o orquestrador:
+
+1. Chama `fetch_character_data(region, realm, name)` do scraper
+2. Mostra o item level medio + lista de pecas equipadas
+3. Conta itens com `item_level >= 272` (o threshold e configuravel; pode sobrescrever o `k` no prompt se quiser)
+4. Pergunta `maxxed` (quantos desses ja em 6/6) e crests livres
+
+Depois de coletar todos os personagens, pede a data do fim da season (ou semanas) e chama `Simulador estatistico.py` via subprocess com os argumentos ja montados (`--characters`, `--maxxed`, `--crests`, `--season-end`/`--weeks`).
+
+Se voce escolher saida JSON, alem do output do simulador o orquestrador imprime tambem o snapshot bruto do scraper (gear completo, M+ rating, melhores corridas) para cada personagem.
+
 ## Anexos
 
 - `Simulador estatistico.py` — código fonte com comentários linha a linha
+- `wow_character_scraper.py` — scraper do armory (gear + M+ rating + best runs) via Raider.IO
+- `simulador_integrado.py` — orquestrador que liga o scraper ao simulador
 - `azure_function.py` — wrapper HTTP para Azure Functions (integração n8n)
-- `requirements.txt` — dependências (numpy, azure-functions)
+- `requirements.txt` — dependências (numpy, azure-functions, requests)
 - `policies.json` — política ótima exportada (gerada com `--json`)
 
 ## Setup com virtual environment
