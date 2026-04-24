@@ -3,9 +3,10 @@ WoW Character Scraper
 =====================
 
 Extrai do armory do personagem:
-- Nivel de item (item level) de cada peca equipada + item_id
-- Classificacao Mitica+ (rating numerico da temporada atual)
-- Melhores corridas de Chave Mitica (nome da masmorra + numero da chave)
+- Item level medio + item level por slot (nome do item + nivel de cada peca equipada)
+- Classificacao Mitica+ (rating numerico da temporada atual, por role)
+- Melhores corridas de Chave Mitica por masmorra: nome, nivel da chave (+12,
+  +13, ...), score, tempo de conclusao e se foi in-time
 
 Uso interativo:
     python wow_character_scraper.py
@@ -118,14 +119,33 @@ def _parse_equipment(gear: dict[str, Any]) -> list[dict[str, Any]]:
         parsed.append(
             {
                 "slot": slot,
-                "item_id": data.get("item_id"),
-                "item_level": data.get("item_level"),
                 "name": data.get("name"),
+                "item_level": data.get("item_level"),
+                "item_id": data.get("item_id"),
                 "quality": data.get("item_quality"),
                 "icon": data.get("icon"),
             }
         )
+    parsed.sort(key=lambda x: x["slot"])
     return parsed
+
+
+def _average_item_level(items: list[dict[str, Any]]) -> float | None:
+    levels = [i["item_level"] for i in items if isinstance(i.get("item_level"), int)]
+    if not levels:
+        return None
+    return round(sum(levels) / len(levels), 2)
+
+
+def _format_clear_time(ms: int | None) -> str | None:
+    if not isinstance(ms, int) or ms <= 0:
+        return None
+    total_seconds, millis = divmod(ms, 1000)
+    minutes, seconds = divmod(total_seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}.{millis:03d}"
+    return f"{minutes}:{seconds:02d}.{millis:03d}"
 
 
 def _parse_mythic_plus_rating(scores: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -148,19 +168,34 @@ def _parse_mythic_plus_rating(scores: list[dict[str, Any]]) -> dict[str, Any] | 
 def _parse_best_runs(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     parsed = []
     for run in runs or []:
+        level = run.get("mythic_level")
+        upgrades = run.get("num_keystone_upgrades") or 0
+        clear_ms = run.get("clear_time_ms")
+        par_ms = run.get("par_time_ms")
+        delta_ms = (
+            par_ms - clear_ms
+            if isinstance(clear_ms, int) and isinstance(par_ms, int)
+            else None
+        )
         parsed.append(
             {
                 "dungeon": run.get("dungeon"),
                 "short_name": run.get("short_name"),
-                "keystone_level": run.get("mythic_level"),
-                "num_keystone_upgrades": run.get("num_keystone_upgrades"),
+                "keystone_level": level,
+                "keystone_label": f"+{level}" if isinstance(level, int) else None,
+                "timed": upgrades > 0,
+                "num_keystone_upgrades": upgrades,
                 "score": run.get("score"),
-                "clear_time_ms": run.get("clear_time_ms"),
-                "par_time_ms": run.get("par_time_ms"),
+                "clear_time": _format_clear_time(clear_ms),
+                "clear_time_ms": clear_ms,
+                "par_time": _format_clear_time(par_ms),
+                "par_time_ms": par_ms,
+                "delta_vs_par": _format_clear_time(abs(delta_ms)) if delta_ms else None,
                 "completed_at": run.get("completed_at"),
                 "url": run.get("url"),
             }
         )
+    parsed.sort(key=lambda r: (-(r["keystone_level"] or 0), -(r["score"] or 0)))
     return parsed
 
 
@@ -171,6 +206,7 @@ def fetch_character_data(region: str, realm: str, name: str) -> dict[str, Any]:
     raw = _fetch_raiderio(region, realm, name)
 
     gear = raw.get("gear") or {}
+    items = _parse_equipment(gear)
     return {
         "character": {
             "name": raw.get("name"),
@@ -186,7 +222,8 @@ def fetch_character_data(region: str, realm: str, name: str) -> dict[str, Any]:
         "equipment": {
             "item_level_equipped": gear.get("item_level_equipped"),
             "item_level_total": gear.get("item_level_total"),
-            "items": _parse_equipment(gear),
+            "item_level_average": _average_item_level(items),
+            "items": items,
         },
         "mythic_plus_rating": _parse_mythic_plus_rating(
             raw.get("mythic_plus_scores_by_season") or []
