@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -124,72 +123,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "default_yn": "y/N",
     },
 }
-
-
-# ---------------------------------------------------------------------------
-# Pos-processamento da saida do simulador (que e em pt-br no codigo original)
-# Aplicado so quando lang == "en-us". Preserva numeros, nomes de char etc.
-# Ordem importa: substituir frases mais longas antes das curtas.
-# ---------------------------------------------------------------------------
-SIMULATOR_PHRASES_PT_TO_EN: list[tuple[str, str]] = [
-    ("SIMULADOR GREAT VAULT - MODO INTERATIVO", "GREAT VAULT SIMULATOR - INTERACTIVE MODE"),
-    ("Proximo reset (terca):", "Next reset (Tuesday):"),
-    ("Quanto tempo falta para o fim da season?", "How much time is left in the season?"),
-    ("Informar a DATA do fim (DD/MM/YYYY)", "Provide END DATE (DD/MM/YYYY)"),
-    ("Informar o NUMERO de semanas restantes", "Provide NUMBER of weeks remaining"),
-    ("Data deve ser >=", "Date must be >="),
-    ("semanas (resets) ate o fim da season", "weeks (resets) until end of season"),
-    ("Fim estimado:", "Estimated end:"),
-    ("Adicione seus personagens.", "Add your characters."),
-    ("Formato: 'nome k maxxed' (ex: 'paladin 8 4'). ENTER vazio para encerrar.",
-     "Format: 'name k maxxed' (e.g. 'paladin 8 4'). Empty ENTER to finish."),
-    ("O terceiro numero eh opcional; se omitido, maxxed=0.",
-     "Third number is optional; if omitted, maxxed=0."),
-    ("Precisa pelo menos 1 personagem.", "Need at least 1 character."),
-    ("k deve estar entre", "k must be between"),
-    ("maxxed deve estar entre", "maxxed must be between"),
-    ("Numero invalido para k.", "Invalid number for k."),
-    ("Numero invalido.", "Invalid number."),
-    ("Precisa ser >= 1.", "Must be >= 1."),
-    ("Itens ja maxxed:", "Items already maxxed:"),
-    ("Crests livres iniciais:", "Initial free crests:"),
-    ("Crests equivalentes iniciais:", "Initial equivalent crests:"),
-    ("Semanas restantes:", "Weeks remaining:"),
-    ("Estrategias fixas (Monte Carlo vs Markov teorico)",
-     "Fixed strategies (Monte Carlo vs theoretical Markov)"),
-    ("Estrategias adaptativas (DP otimo)", "Adaptive strategies (optimal DP)"),
-    ("Estrategia crest-aware (otimiza item Myth 100)",
-     "Crest-aware strategy (optimizes Myth 6/6 items)"),
-    ("Estrategia max loot + crests", "Max loot + crests strategy"),
-    ("E[itens lootados]:", "E[looted items]:"),
-    ("E[itens upgrade 100]:", "E[items upgraded to 6/6]:"),
-    ("Dungeons esperadas:", "Expected dungeons:"),
-    ("Acao agora:", "Action now:"),
-    ("Tempo:", "Time:"),
-    ("PERSONAGEM:", "CHARACTER:"),
-    ("k inicial:", "starting k:"),
-    ("Hoje:", "Today:"),
-    ("ACOES PARA A SEMANA", "ACTIONS FOR THE WEEK"),
-    ("Recomendacao consolidada", "Consolidated recommendation"),
-    ("Resumo agregado", "Aggregated summary"),
-    ("Tempo total da semana", "Total weekly time"),
-    ("E[itens]", "E[items]"),
-    ("itens", "items"),
-    ("semanas", "weeks"),
-    ("semana", "week"),
-    ("personagem", "character"),
-    ("personagens", "characters"),
-    ("min", "min"),  # noop guard
-    ("Opcao", "Choice"),
-]
-
-
-def translate_simulator_line(line: str) -> str:
-    """Aplica substituicoes pt -> en em uma linha do output do simulador."""
-    for pt, en in SIMULATOR_PHRASES_PT_TO_EN:
-        if pt and pt != en:
-            line = line.replace(pt, en)
-    return line
 
 
 def t(lang: str, key: str, **kwargs: Any) -> str:
@@ -300,6 +233,7 @@ def _build_simulator_args(
     weeks: int | None,
     total: int,
     json_output: bool,
+    lang: str,
 ) -> list[str]:
     if not SIMULADOR_PATH.exists():
         raise FileNotFoundError(f"Could not find {SIMULADOR_PATH}")
@@ -308,7 +242,7 @@ def _build_simulator_args(
     maxxed_str = ",".join(f"{c['sim_name']}:{c['maxxed']}" for c in chars)
     crests_str = ",".join(f"{c['sim_name']}:{c['crests']}" for c in chars)
 
-    args = [sys.executable, str(SIMULADOR_PATH), "--characters", chars_str]
+    args = [sys.executable, str(SIMULADOR_PATH), "--characters", chars_str, "--lang", lang]
     if season_end:
         args += ["--season-end", season_end]
     elif weeks is not None:
@@ -322,26 +256,6 @@ def _build_simulator_args(
     if json_output:
         args += ["--json"]
     return args
-
-
-def _run_simulator(args: list[str], lang: str, json_output: bool) -> int:
-    """Executa o simulador. Em en-us, captura stdout e aplica traducao por linha.
-    Em pt-br ou modo --json, encaminha o stdout direto.
-    """
-    if lang == "pt-br" or json_output:
-        return subprocess.run(args).returncode
-
-    # en-us non-json: capture and translate line by line
-    proc = subprocess.Popen(
-        args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, bufsize=1,
-    )
-    assert proc.stdout is not None
-    for line in proc.stdout:
-        sys.stdout.write(translate_simulator_line(line))
-        sys.stdout.flush()
-    proc.wait()
-    return proc.returncode
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -398,13 +312,13 @@ def main(argv: list[str] | None = None) -> int:
     json_answer = _prompt(t(lang, "ask_json"), "n").lower()
     json_output = json_answer.startswith(yes_token)
 
-    sim_args = _build_simulator_args(chars, season_end, weeks, total, json_output)
+    sim_args = _build_simulator_args(chars, season_end, weeks, total, json_output, lang)
 
     print()
     print(t(lang, "running"))
     print(t(lang, "command", cmd=" ".join(sim_args)))
     print()
-    rc = _run_simulator(sim_args, lang, json_output)
+    rc = subprocess.run(sim_args).returncode
 
     if json_output:
         print()

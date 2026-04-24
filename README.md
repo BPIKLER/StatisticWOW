@@ -353,20 +353,21 @@ Se voce escolher saida JSON, alem do output do simulador o orquestrador imprime 
 
 ### Idioma do relatorio: pt-br / en-us
 
-Util para guildmates que falam ingles. O orquestrador (e o scraper, quando rodado standalone) suportam `--lang`:
+Util para guildmates que falam ingles. Os tres scripts suportam `--lang`:
 
 ```powershell
 python simulador_integrado.py --lang en-us
 python simulador_integrado.py --lang pt-br      # default
 
 python wow_character_scraper.py --lang en-us
+python "Simulador estatistico.py" --lang en-us --weeks 12 --characters "paladin:3"
 ```
 
-Se voce nao passar `--lang`, o orquestrador pergunta no inicio.
+Se voce nao passar `--lang` no orquestrador, ele pergunta no inicio. O orquestrador propaga a escolha para o scraper (via API) e para o simulador (via `--lang` no subprocess), entao toda a saida sai no mesmo idioma.
 
 **Importante:** o idioma do relatorio e independente da regiao do servidor. Um personagem em `us/stormrage` pode ser visualizado em pt-br ou en-us — a URL do scraper nao muda. Os parametros `region` (us, eu, kr, tw) e `realm` continuam sendo a regiao geografica do servidor de WoW, nao um idioma.
 
-Como o `Simulador estatistico.py` original tem todos os textos em pt-br hard-coded (e foi pedido para nao alterar), o orquestrador captura a saida do simulador e aplica traducao por linha (frases mais comuns de cabecalhos, recomendacoes, tabelas) quando `--lang en-us`. Numeros, nomes de personagens e tempos passam intactos. Se voce usar `--json`, a saida e encaminhada como veio (sem traducao) para preservar parsing por outras ferramentas.
+A saida `--json` (estruturada para n8n/automacao) ignora `--lang` por design: chaves e valores ficam estaveis para parsing.
 
 ## Anexos
 
