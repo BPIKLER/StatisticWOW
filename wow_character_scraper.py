@@ -234,35 +234,84 @@ def fetch_character_data(region: str, realm: str, name: str) -> dict[str, Any]:
     }
 
 
+SUPPORTED_LANGS = ("pt-br", "en-us")
+DEFAULT_LANG = "pt-br"
+
+# Strings de UI quando rodado standalone. A regiao do servidor (us/eu/kr/tw)
+# nao tem ligacao com o idioma do relatorio: um char em "us/stormrage" pode ser
+# visualizado em qualquer idioma.
+_UI_STRINGS: dict[str, dict[str, str]] = {
+    "pt-br": {
+        "title": "=== WoW Character Scraper ===",
+        "intro_1": "Informe os dados do personagem que aparecem na URL do armory:",
+        "intro_2": "  https://worldofwarcraft.blizzard.com/pt-br/character/<region>/<realm>/<name>",
+        "ask_region": "Regiao do servidor (us, eu, kr, tw)",
+        "ask_realm": "Servidor (ex: stormrage)",
+        "ask_name": "Nome do personagem (ex: retribully)",
+        "err_required": "Erro: servidor e nome do personagem sao obrigatorios.",
+        "err_not_found": "Erro: {err}",
+        "err_http": "Erro HTTP ao buscar personagem: {err}",
+        "err_network": "Erro de rede: {err}",
+    },
+    "en-us": {
+        "title": "=== WoW Character Scraper ===",
+        "intro_1": "Provide the character data shown in the armory URL:",
+        "intro_2": "  https://worldofwarcraft.blizzard.com/en-us/character/<region>/<realm>/<name>",
+        "ask_region": "Server region (us, eu, kr, tw)",
+        "ask_realm": "Realm (e.g. stormrage)",
+        "ask_name": "Character name (e.g. retribully)",
+        "err_required": "Error: realm and character name are required.",
+        "err_not_found": "Error: {err}",
+        "err_http": "HTTP error fetching character: {err}",
+        "err_network": "Network error: {err}",
+    },
+}
+
+
 def _prompt(label: str, default: str | None = None) -> str:
     suffix = f" [{default}]" if default else ""
     answer = input(f"{label}{suffix}: ").strip()
     return answer or (default or "")
 
 
-def main() -> int:
-    print("=== WoW Character Scraper ===")
-    print("Informe os dados do personagem que aparecem na URL do armory:")
-    print("  https://worldofwarcraft.blizzard.com/pt-br/character/<region>/<realm>/<name>\n")
+def _t(lang: str, key: str, **kwargs: Any) -> str:
+    table = _UI_STRINGS.get(lang, _UI_STRINGS[DEFAULT_LANG])
+    template = table.get(key) or _UI_STRINGS[DEFAULT_LANG].get(key) or key
+    return template.format(**kwargs) if kwargs else template
 
-    region = _prompt("Regiao (us, eu, kr, tw)", "us")
-    realm = _prompt("Servidor (ex: stormrage)")
-    name = _prompt("Nome do personagem (ex: retribully)")
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="WoW armory scraper (gear + M+ data)")
+    parser.add_argument("--lang", choices=SUPPORTED_LANGS, default=DEFAULT_LANG,
+                        help="Language for prompts and error messages")
+    args = parser.parse_args(argv)
+    lang = args.lang
+
+    print(_t(lang, "title"))
+    print(_t(lang, "intro_1"))
+    print(_t(lang, "intro_2"))
+    print()
+
+    region = _prompt(_t(lang, "ask_region"), "us")
+    realm = _prompt(_t(lang, "ask_realm"))
+    name = _prompt(_t(lang, "ask_name"))
 
     if not realm or not name:
-        print("Erro: servidor e nome do personagem sao obrigatorios.", file=sys.stderr)
+        print(_t(lang, "err_required"), file=sys.stderr)
         return 1
 
     try:
         data = fetch_character_data(region=region, realm=realm, name=name)
     except CharacterNotFoundError as e:
-        print(f"Erro: {e}", file=sys.stderr)
+        print(_t(lang, "err_not_found", err=e), file=sys.stderr)
         return 2
     except requests.HTTPError as e:
-        print(f"Erro HTTP ao buscar personagem: {e}", file=sys.stderr)
+        print(_t(lang, "err_http", err=e), file=sys.stderr)
         return 3
     except requests.RequestException as e:
-        print(f"Erro de rede: {e}", file=sys.stderr)
+        print(_t(lang, "err_network", err=e), file=sys.stderr)
         return 3
 
     print(json.dumps(data, indent=2, ensure_ascii=False))

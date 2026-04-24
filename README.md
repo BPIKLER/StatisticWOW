@@ -351,6 +351,23 @@ Depois de coletar todos os personagens, pede a data do fim da season (ou semanas
 
 Se voce escolher saida JSON, alem do output do simulador o orquestrador imprime tambem o snapshot bruto do scraper (gear completo, M+ rating, melhores corridas) para cada personagem.
 
+### Idioma do relatorio: pt-br / en-us
+
+Util para guildmates que falam ingles. O orquestrador (e o scraper, quando rodado standalone) suportam `--lang`:
+
+```powershell
+python simulador_integrado.py --lang en-us
+python simulador_integrado.py --lang pt-br      # default
+
+python wow_character_scraper.py --lang en-us
+```
+
+Se voce nao passar `--lang`, o orquestrador pergunta no inicio.
+
+**Importante:** o idioma do relatorio e independente da regiao do servidor. Um personagem em `us/stormrage` pode ser visualizado em pt-br ou en-us — a URL do scraper nao muda. Os parametros `region` (us, eu, kr, tw) e `realm` continuam sendo a regiao geografica do servidor de WoW, nao um idioma.
+
+Como o `Simulador estatistico.py` original tem todos os textos em pt-br hard-coded (e foi pedido para nao alterar), o orquestrador captura a saida do simulador e aplica traducao por linha (frases mais comuns de cabecalhos, recomendacoes, tabelas) quando `--lang en-us`. Numeros, nomes de personagens e tempos passam intactos. Se voce usar `--json`, a saida e encaminhada como veio (sem traducao) para preservar parsing por outras ferramentas.
+
 ## Anexos
 
 - `Simulador estatistico.py` — código fonte com comentários linha a linha
