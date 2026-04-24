@@ -288,32 +288,49 @@ print(result['recommendation_this_week'])
 
 ## Crest accountability
 
-O simulador agora tambem considera crests para transformar item Myth looted em item Myth 100:
+O simulador agora tambem considera crests para transformar item Myth lootado (1/6) em item Myth totalmente maxxado (6/6):
 
-- Cada +12 timed gera 20 crests.
-- Cada item Myth precisa de 100 crests para ir de 0 para 100.
-- Pela tabela atual de tempo, `s=1` equivale a 1 dungeon timed, `s=2` a 5 dungeons timed, e `s=3` a 10 dungeons timed.
-- Portanto `s=2` gera exatamente 100 crests na semana, o suficiente para upgrade de 1 item Myth.
+### Track de upgrade — Myth (e so Myth conta)
 
-O output continua mostrando a expectativa de itens lootados, mas adiciona `E[upg 100]` e uma estrategia `crest-aware`, que otimiza a expectativa de itens efetivamente upgradeados para 100.
+Itens em WoW podem cair em diferentes tracks de progressao:
+
+- **Adventurer**, **Veteran**, **Champion**, **Hero** — **NAO contam** para esse simulador
+- **Myth** — unica track relevante; e a que aparece com o rotulo `Upgrade Level: Myth X/6`
+
+Quando voce informa o `k` de um personagem, conte apenas itens cujo tooltip diz `Myth X/6`. Hero, Champion, etc. ficam de fora.
+
+### Mecanica de crests para itens Myth
+
+- Um item Myth dropa em **1/6** com **item level 272** (na temporada atual)
+- Cada upgrade dentro da track Myth (1/6 → 2/6 → ... → 6/6) custa **20 crests**
+- Sao 5 upgrades para sair de 1/6 ate o cap **6/6**, totalizando **100 crests** por item totalmente maxxado
+- 6/6 e o teto de upgrade do jogo (item mais upgradeavel)
+
+### Geracao de crests por dungeon
+
+- Cada **+12 timed** gera 20 crests
+- Pela tabela atual de tempo, `s=1` equivale a 1 dungeon timed, `s=2` a 5 dungeons timed, e `s=3` a 10 dungeons timed
+- Portanto `s=2` gera exatamente 100 crests na semana — suficiente para subir 1 item Myth de 1/6 ate 6/6
+
+O output continua mostrando a expectativa de itens lootados, mas adiciona `E[upg 6/6]` e uma estrategia `crest-aware`, que otimiza a expectativa de itens efetivamente upgradeados ate 6/6.
 
 Tambem existe uma estrategia `max loot + crests`, diferente da recomendacao adaptativa normal:
 
 - Primeiro maximiza os itens Myth esperados ate o fim da season.
-- Depois maximiza quantos desses itens conseguem ficar 100 com crests.
+- Depois maximiza quantos desses itens conseguem ficar 6/6 com crests.
 - Por ultimo minimiza o tempo/dungeons entre estrategias equivalentes.
 
 Essa estrategia responde quantas +12 timed voce precisa jogar para perseguir o maximo de loot esperado e ainda ter crests para os upgrades.
 
-Voce pode informar itens ja maxxed e crests livres por personagem:
+Voce pode informar itens ja maxxed (6/6) e crests livres por personagem:
 
 ```powershell
 python "Simulador estatistico.py" --weeks 15 --characters "paladin:8,warrior:6" --maxxed "paladin:4,warrior:2" --crests "paladin:40,warrior:0"
 ```
 
-Nesse exemplo, o paladin tem 8 itens Myth lootados, 4 deles ja maxxed, e 40 crests livres. O warrior tem 6 itens Myth lootados, 2 ja maxxed, e 0 crests livres.
+Nesse exemplo, o paladin tem 8 itens Myth lootados (track Myth, ignorando Hero/Champion/etc.), 4 deles ja em 6/6, e 40 crests livres. O warrior tem 6 itens Myth lootados, 2 ja em 6/6, e 0 crests livres.
 
-No modo interativo, informe cada personagem como `nome k maxxed`, por exemplo `paladin 8 4`.
+No modo interativo, informe cada personagem como `nome k maxxed`, por exemplo `paladin 8 4` — onde `k` e a contagem de itens Myth (track Myth, qualquer X/6) e `maxxed` e quantos desses ja estao em 6/6.
 
 ## Anexos
 
