@@ -17,6 +17,7 @@ do scraper.
 Uso:
     python simulador_integrado.py
     python simulador_integrado.py --lang en-us
+    python simulador_integrado.py --characters "us:stormrage:char1,us:area-52:char2"
 
 Nao modifica nem o scraper nem o simulador — so amarra os dois.
 """
@@ -67,6 +68,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "ask_region": "Regiao do servidor (us, eu, kr, tw)",
         "ask_realm": "Servidor (ex: stormrage)",
         "realm_required": "  ! servidor obrigatorio. Pulando este personagem.",
+        "bad_character_spec": "  ! formato invalido em --characters: {spec}. Use regiao:servidor:nome.",
         "fetching": "  Buscando {name}@{realm}-{region}...",
         "fetch_ok": "  OK: ilvl medio={avg}, ilvl equipado(raider.io)={equipped}",
         "fetch_error": "  ! erro ao buscar: {err}",
@@ -89,6 +91,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "ask_region": "Server region (us, eu, kr, tw)",
         "ask_realm": "Realm (e.g. stormrage)",
         "realm_required": "  ! realm is required. Skipping this character.",
+        "bad_character_spec": "  ! invalid --characters format: {spec}. Use region:realm:name.",
         "fetching": "  Fetching {name}@{realm}-{region}...",
         "fetch_ok": "  OK: avg ilvl={avg}, equipped ilvl(raider.io)={equipped}",
         "fetch_error": "  ! fetch error: {err}",
@@ -182,16 +185,7 @@ def _resolve_language(cli_lang: str | None) -> str:
     return "en-us" if choice.strip() == "2" else DEFAULT_LANG
 
 
-def _collect_character(lang: str) -> dict[str, Any] | None | object:
-    name = _prompt(t(lang, "ask_name"))
-    if not name:
-        return None
-    region = _prompt(t(lang, "ask_region"), "us")
-    realm = _prompt(t(lang, "ask_realm"))
-    if not realm:
-        print(t(lang, "realm_required"))
-        return SKIP_CHARACTER
-
+def _fetch_and_analyze_character(region: str, realm: str, name: str, lang: str) -> dict[str, Any] | object:
     print(t(lang, "fetching", name=name, realm=realm, region=region))
     try:
         scraped = fetch_character_data(region=region, realm=realm, name=name)
@@ -242,6 +236,33 @@ def _collect_character(lang: str) -> dict[str, Any] | None | object:
     }
 
 
+def _collect_character(lang: str) -> dict[str, Any] | None | object:
+    name = _prompt(t(lang, "ask_name"))
+    if not name:
+        return None
+    region = _prompt(t(lang, "ask_region"), "us")
+    realm = _prompt(t(lang, "ask_realm"))
+    if not realm:
+        print(t(lang, "realm_required"))
+        return SKIP_CHARACTER
+
+    return _fetch_and_analyze_character(region, realm, name, lang)
+
+
+def parse_character_specs(spec: str, lang: str) -> list[tuple[str, str, str]]:
+    characters = []
+    for raw_part in spec.split(","):
+        part = raw_part.strip()
+        if not part:
+            continue
+        pieces = [p.strip() for p in part.split(":")]
+        if len(pieces) != 3 or not all(pieces):
+            raise ValueError(t(lang, "bad_character_spec", spec=part))
+        region, realm, name = pieces
+        characters.append((region, realm, name))
+    return characters
+
+
 def _build_simulator_args(
     chars: list[dict[str, Any]],
     weeks: int,
@@ -281,6 +302,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Integrated WoW armory + Great Vault simulator")
     parser.add_argument("--lang", choices=SUPPORTED_LANGS, default=None,
                         help="Language for prompts and report output")
+    parser.add_argument("--characters", type=str, default=None,
+                        help='character profiles as "region:realm:name,region:realm:name"')
     parser.add_argument("--weeks", type=int, default=DEFAULT_WEEKS_REMAINING,
                         help=f"weeks remaining used by the simulator (default: {DEFAULT_WEEKS_REMAINING})")
     parser.add_argument("--total", type=int, default=DEFAULT_TOTAL_ITEMS,
@@ -298,19 +321,32 @@ def main(argv: list[str] | None = None) -> int:
     print()
 
     chars: list[dict[str, Any]] = []
-    while True:
-        print(t(lang, "char_header", n=len(chars) + 1))
-        char = _collect_character(lang)
-        if char is None:
-            break
-        if char is SKIP_CHARACTER:
+    if args.characters:
+        try:
+            character_specs = parse_character_specs(args.characters, lang)
+        except ValueError as e:
+            print(e, file=sys.stderr)
+            return 1
+        for region, realm, name in character_specs:
+            print(t(lang, "char_header", n=len(chars) + 1))
+            char = _fetch_and_analyze_character(region, realm, name, lang)
+            if char is not SKIP_CHARACTER and isinstance(char, dict):
+                chars.append(char)
             print()
-            continue
-        if not isinstance(char, dict):
+    else:
+        while True:
+            print(t(lang, "char_header", n=len(chars) + 1))
+            char = _collect_character(lang)
+            if char is None:
+                break
+            if char is SKIP_CHARACTER:
+                print()
+                continue
+            if not isinstance(char, dict):
+                print()
+                continue
+            chars.append(char)
             print()
-            continue
-        chars.append(char)
-        print()
 
     if not chars:
         print(t(lang, "no_chars"), file=sys.stderr)
