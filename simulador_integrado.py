@@ -4,11 +4,9 @@ Simulador Integrado — junta o scraper do armory com o simulador estatistico.
 Fluxo:
   1) Para cada personagem, pede regiao/servidor/nome
   2) Chama wow_character_scraper.fetch_character_data() para baixar o gear
-  3) Conta itens Myth (item_level >= MYTH_BASE_ILVL) e usa esse numero como
-     o `k` que o Simulador estatistico.py espera receber
-  4) Pergunta data do fim da season (ou semanas restantes) e crests/maxxed
-     opcionais por char
-  5) Executa "Simulador estatistico.py" via subprocess passando os args
+  3) Conta itens Myth (item_level >= 272), calcula o progresso 1/6 a 6/6
+     e usa isso como `k`, `crests` equivalentes e `maxxed`
+  4) Executa "Simulador estatistico.py" via subprocess passando os args
      montados a partir dos dados scrapeados
 
 Idioma da interface e do relatorio: pt-br (default) ou en-us via --lang.
@@ -26,7 +24,6 @@ Nao modifica nem o scraper nem o simulador — so amarra os dois.
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
@@ -36,9 +33,22 @@ from wow_character_scraper import CharacterNotFoundError, fetch_character_data
 
 ROOT = Path(__file__).parent
 SIMULADOR_PATH = ROOT / "Simulador estatistico.py"
+SKIP_CHARACTER = object()
 
-# Item level base de uma peca Myth 1/6 (per README: "1/6 com item level 272").
+# Progressao Myth informada pelo usuario:
+# 272=1/6, 276=2/6, 279=3/6, 282=4/6, 286=5/6, 289=6/6.
 MYTH_BASE_ILVL_DEFAULT = 272
+MYTH_PROGRESS_BY_ILVL = [
+    (289, "6/6", 100),
+    (286, "5/6", 80),
+    (282, "4/6", 60),
+    (279, "3/6", 40),
+    (276, "2/6", 20),
+    (272, "1/6", 0),
+]
+CRESTS_TO_MAX_MYTH_ITEM = 100
+DEFAULT_WEEKS_REMAINING = 15
+DEFAULT_TOTAL_ITEMS = 18
 
 SUPPORTED_LANGS = ("pt-br", "en-us")
 DEFAULT_LANG = "pt-br"
@@ -56,34 +66,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "ask_name": "Nome do personagem (ENTER vazio para encerrar)",
         "ask_region": "Regiao do servidor (us, eu, kr, tw)",
         "ask_realm": "Servidor (ex: stormrage)",
-        "realm_required": "  ! servidor obrigatorio. Pulando.",
+        "realm_required": "  ! servidor obrigatorio. Pulando este personagem.",
         "fetching": "  Buscando {name}@{realm}-{region}...",
         "fetch_ok": "  OK: ilvl medio={avg}, ilvl equipado(raider.io)={equipped}",
         "fetch_error": "  ! erro ao buscar: {err}",
-        "ask_threshold": "Item level minimo Myth 1/6",
         "myth_count": "  -> {k} item(ns) Myth detectado(s) (ilvl >= {th}):",
-        "ask_override_k": "Sobrescrever k? (ENTER=manter {k})",
-        "invalid_int": "  ! valor invalido, mantendo k={k}",
-        "ask_maxxed": "Quantos desses {k} ja em 6/6",
-        "ask_crests": "Crests Myth livres",
+        "myth_item_line": "     - {slot:<10} ilvl {ilvl:>4}  {progress:<3}  crests {spent:>3}/{total:<3}  falta {missing:>3}  {name}",
         "rating_summary": "  M+ rating: {score}  |  {n} melhores corridas registradas",
         "no_chars": "Nenhum personagem coletado. Encerrando.",
         "summary_header": "{n} personagem(ns) coletado(s):",
-        "summary_line": "  - {name}: k={k}, maxxed={maxxed}, crests={crests}",
-        "season_header": "Tempo restante de season:",
-        "season_opt1": "  [1] Informar a DATA do fim (DD/MM/YYYY)",
-        "season_opt2": "  [2] Informar o NUMERO de semanas restantes",
-        "season_choice": "Opcao",
-        "ask_weeks": "Semanas restantes",
-        "ask_season_end": "Data do fim da season (DD/MM/YYYY)",
-        "no_date": "Data nao informada. Encerrando.",
-        "ask_total": "Total de itens unicos no pool",
-        "ask_json": "Saida do simulador em JSON? (s/N)",
+        "summary_line": "  - {name}: k={k}, maxxed={maxxed}, crests equivalentes={crests}, faltam={missing}",
+        "auto_config": "Configuracao automatica: semanas={weeks}, total de itens={total}",
         "running": "=== Executando simulador ===",
         "command": "$ {cmd}",
-        "snapshot_header": "=== Dados brutos do scraper (por personagem) ===",
-        "yes_token": "s",
-        "default_yn": "s/N",
     },
     "en-us": {
         "lang_prompt": "Idioma do relatorio / Report language [1] pt-br  [2] en-us",
@@ -93,34 +88,19 @@ STRINGS: dict[str, dict[str, str]] = {
         "ask_name": "Character name (empty ENTER to finish)",
         "ask_region": "Server region (us, eu, kr, tw)",
         "ask_realm": "Realm (e.g. stormrage)",
-        "realm_required": "  ! realm is required. Skipping.",
+        "realm_required": "  ! realm is required. Skipping this character.",
         "fetching": "  Fetching {name}@{realm}-{region}...",
         "fetch_ok": "  OK: avg ilvl={avg}, equipped ilvl(raider.io)={equipped}",
         "fetch_error": "  ! fetch error: {err}",
-        "ask_threshold": "Minimum item level for Myth 1/6",
         "myth_count": "  -> {k} Myth item(s) detected (ilvl >= {th}):",
-        "ask_override_k": "Override k? (ENTER=keep {k})",
-        "invalid_int": "  ! invalid value, keeping k={k}",
-        "ask_maxxed": "How many of these {k} are already at 6/6",
-        "ask_crests": "Free Myth crests",
+        "myth_item_line": "     - {slot:<10} ilvl {ilvl:>4}  {progress:<3}  crests {spent:>3}/{total:<3}  missing {missing:>3}  {name}",
         "rating_summary": "  M+ rating: {score}  |  {n} best runs recorded",
         "no_chars": "No characters collected. Exiting.",
         "summary_header": "{n} character(s) collected:",
-        "summary_line": "  - {name}: k={k}, maxxed={maxxed}, crests={crests}",
-        "season_header": "Time left in season:",
-        "season_opt1": "  [1] Provide season END DATE (DD/MM/YYYY)",
-        "season_opt2": "  [2] Provide NUMBER of weeks remaining",
-        "season_choice": "Choice",
-        "ask_weeks": "Weeks remaining",
-        "ask_season_end": "Season end date (DD/MM/YYYY)",
-        "no_date": "No date provided. Exiting.",
-        "ask_total": "Total unique items in the pool",
-        "ask_json": "Simulator output as JSON? (y/N)",
+        "summary_line": "  - {name}: k={k}, maxxed={maxxed}, equivalent crests={crests}, missing={missing}",
+        "auto_config": "Automatic config: weeks={weeks}, total items={total}",
         "running": "=== Running simulator ===",
         "command": "$ {cmd}",
-        "snapshot_header": "=== Raw scraper data (per character) ===",
-        "yes_token": "y",
-        "default_yn": "y/N",
     },
 }
 
@@ -135,28 +115,60 @@ def t(lang: str, key: str, **kwargs: Any) -> str:
 # ---------------------------------------------------------------------------
 # Logica de negocio
 # ---------------------------------------------------------------------------
-def count_myth_items(scraped: dict[str, Any], myth_threshold: int) -> tuple[int, list[dict[str, Any]]]:
-    """Retorna (k, lista de itens classificados como Myth) baseado no ilvl."""
+def myth_progress_for_ilvl(item_level: int) -> tuple[str, int] | None:
+    """Retorna (progressao, crests_gastos) para um item Myth pelo item level."""
+    for min_ilvl, progress, crests_spent in MYTH_PROGRESS_BY_ILVL:
+        if item_level >= min_ilvl:
+            return progress, crests_spent
+    return None
+
+
+def analyze_myth_items(scraped: dict[str, Any]) -> dict[str, Any]:
+    """Calcula k, itens maxxed e crests equivalentes ja investidos."""
     items = scraped.get("equipment", {}).get("items") or []
-    myth_items = [
-        i for i in items if isinstance(i.get("item_level"), int) and i["item_level"] >= myth_threshold
-    ]
-    return len(myth_items), myth_items
+    myth_items = []
+    maxxed = 0
+    equivalent_crests = 0
+
+    for item in items:
+        item_level = item.get("item_level")
+        if not isinstance(item_level, int):
+            continue
+        progress = myth_progress_for_ilvl(item_level)
+        if progress is None:
+            continue
+
+        progress_label, crests_spent = progress
+        is_maxxed = crests_spent >= CRESTS_TO_MAX_MYTH_ITEM
+        if is_maxxed:
+            maxxed += 1
+        else:
+            equivalent_crests += crests_spent
+
+        missing = max(0, CRESTS_TO_MAX_MYTH_ITEM - crests_spent)
+        myth_items.append({
+            **item,
+            "progress": progress_label,
+            "crests_spent": crests_spent,
+            "crests_missing": missing,
+        })
+
+    k = len(myth_items)
+    effective_crests = equivalent_crests + maxxed * CRESTS_TO_MAX_MYTH_ITEM
+    return {
+        "k": k,
+        "maxxed": maxxed,
+        "equivalent_crests": equivalent_crests,
+        "effective_crests": effective_crests,
+        "crests_missing": max(0, k * CRESTS_TO_MAX_MYTH_ITEM - effective_crests),
+        "items": myth_items,
+    }
 
 
 def _prompt(label: str, default: str | None = None) -> str:
     suffix = f" [{default}]" if default else ""
     answer = input(f"{label}{suffix}: ").strip()
     return answer or (default or "")
-
-
-def _prompt_int(label: str, default: int) -> int:
-    while True:
-        raw = _prompt(label, str(default))
-        try:
-            return int(raw)
-        except ValueError:
-            print("  ! invalid number / numero invalido")
 
 
 def _resolve_language(cli_lang: str | None) -> str:
@@ -167,10 +179,10 @@ def _resolve_language(cli_lang: str | None) -> str:
         return cli_lang
     print(STRINGS[DEFAULT_LANG]["lang_prompt"])
     choice = _prompt("Opcao / Choice", "1")
-    return "en-us" if choice.strip() == "2" else "pt-br"
+    return "en-us" if choice.strip() == "2" else DEFAULT_LANG
 
 
-def _collect_character(lang: str) -> dict[str, Any] | None:
+def _collect_character(lang: str) -> dict[str, Any] | None | object:
     name = _prompt(t(lang, "ask_name"))
     if not name:
         return None
@@ -178,38 +190,40 @@ def _collect_character(lang: str) -> dict[str, Any] | None:
     realm = _prompt(t(lang, "ask_realm"))
     if not realm:
         print(t(lang, "realm_required"))
-        return None
+        return SKIP_CHARACTER
 
     print(t(lang, "fetching", name=name, realm=realm, region=region))
     try:
         scraped = fetch_character_data(region=region, realm=realm, name=name)
     except CharacterNotFoundError as e:
         print(f"  ! {e}")
-        return None
+        return SKIP_CHARACTER
     except Exception as e:
         print(t(lang, "fetch_error", err=e))
-        return None
+        return SKIP_CHARACTER
 
     avg = scraped["equipment"].get("item_level_average")
     equipped = scraped["equipment"].get("item_level_equipped")
     print(t(lang, "fetch_ok", avg=avg, equipped=equipped))
 
-    myth_threshold = _prompt_int(t(lang, "ask_threshold"), MYTH_BASE_ILVL_DEFAULT)
-    k, myth_items = count_myth_items(scraped, myth_threshold)
+    myth_threshold = MYTH_BASE_ILVL_DEFAULT
+    myth_progress = analyze_myth_items(scraped)
+    k = myth_progress["k"]
+    myth_items = myth_progress["items"]
 
     print(t(lang, "myth_count", k=k, th=myth_threshold))
     for it in myth_items:
-        print(f"     - {it['slot']:<10} ilvl {it['item_level']:>4}  {it.get('name')}")
-
-    override = _prompt(t(lang, "ask_override_k", k=k), "")
-    if override:
-        try:
-            k = int(override)
-        except ValueError:
-            print(t(lang, "invalid_int", k=k))
-
-    maxxed = _prompt_int(t(lang, "ask_maxxed", k=k), 0)
-    crests = _prompt_int(t(lang, "ask_crests"), 0)
+        print(t(
+            lang,
+            "myth_item_line",
+            slot=it["slot"],
+            ilvl=it["item_level"],
+            progress=it["progress"],
+            spent=it["crests_spent"],
+            total=CRESTS_TO_MAX_MYTH_ITEM,
+            missing=it["crests_missing"],
+            name=it.get("name"),
+        ))
 
     rating = scraped.get("mythic_plus_rating") or {}
     runs = scraped.get("mythic_plus_best_runs") or []
@@ -220,8 +234,9 @@ def _collect_character(lang: str) -> dict[str, Any] | None:
         "sim_name": sim_name,
         "display_name": scraped["character"].get("name") or name,
         "k": k,
-        "maxxed": maxxed,
-        "crests": crests,
+        "maxxed": myth_progress["maxxed"],
+        "crests": myth_progress["equivalent_crests"],
+        "crests_missing": myth_progress["crests_missing"],
         "myth_threshold": myth_threshold,
         "scraped": scraped,
     }
@@ -229,8 +244,7 @@ def _collect_character(lang: str) -> dict[str, Any] | None:
 
 def _build_simulator_args(
     chars: list[dict[str, Any]],
-    season_end: str | None,
-    weeks: int | None,
+    weeks: int,
     total: int,
     json_output: bool,
     lang: str,
@@ -242,16 +256,21 @@ def _build_simulator_args(
     maxxed_str = ",".join(f"{c['sim_name']}:{c['maxxed']}" for c in chars)
     crests_str = ",".join(f"{c['sim_name']}:{c['crests']}" for c in chars)
 
-    args = [sys.executable, str(SIMULADOR_PATH), "--characters", chars_str, "--lang", lang]
-    if season_end:
-        args += ["--season-end", season_end]
-    elif weeks is not None:
-        args += ["--weeks", str(weeks)]
+    args = [
+        sys.executable,
+        str(SIMULADOR_PATH),
+        "--characters",
+        chars_str,
+        "--lang",
+        lang,
+        "--weeks",
+        str(weeks),
+    ]
     if any(c["maxxed"] for c in chars):
         args += ["--maxxed", maxxed_str]
     if any(c["crests"] for c in chars):
         args += ["--crests", crests_str]
-    if total != 18:
+    if total != DEFAULT_TOTAL_ITEMS:
         args += ["--total", str(total)]
     if json_output:
         args += ["--json"]
@@ -262,6 +281,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Integrated WoW armory + Great Vault simulator")
     parser.add_argument("--lang", choices=SUPPORTED_LANGS, default=None,
                         help="Language for prompts and report output")
+    parser.add_argument("--weeks", type=int, default=DEFAULT_WEEKS_REMAINING,
+                        help=f"weeks remaining used by the simulator (default: {DEFAULT_WEEKS_REMAINING})")
+    parser.add_argument("--total", type=int, default=DEFAULT_TOTAL_ITEMS,
+                        help=f"total unique items in the pool (default: {DEFAULT_TOTAL_ITEMS})")
+    parser.add_argument("--json", action="store_true",
+                        help="pass --json to the statistical simulator")
     args = parser.parse_args(argv)
 
     lang = _resolve_language(args.lang)
@@ -278,6 +303,12 @@ def main(argv: list[str] | None = None) -> int:
         char = _collect_character(lang)
         if char is None:
             break
+        if char is SKIP_CHARACTER:
+            print()
+            continue
+        if not isinstance(char, dict):
+            print()
+            continue
         chars.append(char)
         print()
 
@@ -288,52 +319,35 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print(t(lang, "summary_header", n=len(chars)))
     for c in chars:
-        print(t(lang, "summary_line",
-                name=c["display_name"], k=c["k"], maxxed=c["maxxed"], crests=c["crests"]))
+        print(t(
+            lang,
+            "summary_line",
+            name=c["display_name"],
+            k=c["k"],
+            maxxed=c["maxxed"],
+            crests=c["crests"],
+            missing=c["crests_missing"],
+        ))
     print()
 
-    print(t(lang, "season_header"))
-    print(t(lang, "season_opt1"))
-    print(t(lang, "season_opt2"))
-    choice = _prompt(t(lang, "season_choice"), "1")
+    total = args.total
+    max_k = max(c["k"] for c in chars)
+    if total < max_k:
+        print(f"total must be >= largest k ({max_k})", file=sys.stderr)
+        return 1
+    if args.weeks < 1:
+        print("weeks must be >= 1", file=sys.stderr)
+        return 1
 
-    season_end: str | None = None
-    weeks: int | None = None
-    if choice == "2":
-        weeks = _prompt_int(t(lang, "ask_weeks"), 15)
-    else:
-        season_end = _prompt(t(lang, "ask_season_end"))
-        if not season_end:
-            print(t(lang, "no_date"), file=sys.stderr)
-            return 1
+    print(t(lang, "auto_config", weeks=args.weeks, total=total))
 
-    total = _prompt_int(t(lang, "ask_total"), 18)
-    yes_token = STRINGS[lang]["yes_token"]
-    json_answer = _prompt(t(lang, "ask_json"), "n").lower()
-    json_output = json_answer.startswith(yes_token)
-
-    sim_args = _build_simulator_args(chars, season_end, weeks, total, json_output, lang)
+    sim_args = _build_simulator_args(chars, args.weeks, total, args.json, lang)
 
     print()
     print(t(lang, "running"))
     print(t(lang, "command", cmd=" ".join(sim_args)))
     print()
     rc = subprocess.run(sim_args).returncode
-
-    if json_output:
-        print()
-        print(t(lang, "snapshot_header"))
-        snapshot = {
-            c["display_name"]: {
-                "k_myth": c["k"],
-                "maxxed": c["maxxed"],
-                "crests": c["crests"],
-                "myth_threshold": c["myth_threshold"],
-                "scraper": c["scraped"],
-            }
-            for c in chars
-        }
-        print(json.dumps(snapshot, indent=2, ensure_ascii=False))
 
     return rc
 
